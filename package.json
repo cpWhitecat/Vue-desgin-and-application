@@ -19,5 +19,8 @@
   },
   "dependencies": {
     "@vue/shared": "^3.2.39"
+  },
+  "devDependencies": {
+    "typescript": "^4.8.3"
   }
 }
