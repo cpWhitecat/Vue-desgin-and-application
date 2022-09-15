@@ -1,0 +1,23 @@
+{
+  "name": "vue-desgin-and-application",
+  "version": "1.0.0",
+  "description": "To learn Vue source",
+  "main": "index.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/cpWhtiecat/Vue-design-and-application.git"
+  },
+  "author": "cpWhitecat <19803cp@gmail.com>",
+  "license": "MIT",
+  "private": "false",
+  "bugs": {
+    "url": "https://github.com/cpWhtiecat/Vue-design-and-application/issues"
+  },
+  "homepage": "https://github.com/cpWhtiecat/Vue-design-and-application#readme",
+  "scripts": {
+    "test": "yarn test app"
+  },
+  "dependencies": {
+    "@vue/shared": "^3.2.39"
+  }
+}
