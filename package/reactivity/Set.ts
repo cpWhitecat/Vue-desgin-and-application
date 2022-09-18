@@ -1,7 +1,7 @@
 // setting tsconfig.ts
-export const bocket: Set<any> = new Set();
+const bocket: Set<any> = new Set();
 
-export const data : object= {
+const data : object= {
     text:'hello cp'
 }
 

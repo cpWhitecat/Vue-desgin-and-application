@@ -1,28 +1,78 @@
-import { bocket, data } from "./Set";
 
-let activeEffect ;
-function effect(fn){
-    activeEffect = fn
-    fn()
+
+// let activeEffect ;
+// function effect(fn){
+//     activeEffect = fn
+//     fn()
+// }
+
+// const fullObj : object = new Proxy(data,{
+//     get(target, p, receiver) {
+//         if(activeEffect){
+//             bocket.add(activeEffect);
+//             activeEffect = undefined;
+//         }
+
+//         return target[p]
+//     },
+//     set(target, p, newValue, receiver) {
+//         target[p] = newValue;
+//         bocket.forEach(fn=>fn())
+//         return true 
+//     },
+    
+// })
+
+
+const bocket  = new WeakMap();
+const data = {
+    text:'hello'
 }
 
-const fullObj : object = new Proxy(data,{
+let activeEffect;  // cache effect function
+
+const obj =new Proxy(data,{
     get(target, p, receiver) {
-        if(activeEffect){
-            bocket.add(activeEffect);
-            activeEffect = undefined;
+
+        // if 全是判断相应的值是否存在 ， 没有则 Recording
+        if(!activeEffect) return;
+
+        let depsMap = bocket.get(target);
+
+        if(!depsMap){
+            bocket.set(target,(new Map()));
+        };
+
+        let deps : Set<unknown>= depsMap.get(p);
+
+        if(!deps){
+            depsMap.set(p,( deps = new Set()));
         }
 
+        deps.add(activeEffect);
+
         return target[p]
+
     },
+
     set(target, p, newValue, receiver) {
         target[p] = newValue;
-        bocket.forEach(fn=>fn())
-        return true 
-    },
-    
-})
 
+        const depsMap = bocket.get(target);
+
+        if(!depsMap) return false
+
+        const effects = depsMap.get(p);
+
+        effects && effects.forEach(fn => {
+            fn()
+        });
+
+
+
+        return true
+    },
+})
 
 // 为了避免执行多余的副作用
 // https://github.com/cpWhitecat/Vue-core/blob/main/packages/reactivity/src/effect.ts
