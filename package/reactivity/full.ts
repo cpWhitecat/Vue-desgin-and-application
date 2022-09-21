@@ -31,44 +31,71 @@ const data = {
 
 let activeEffect;  // cache effect function
 
+function effect(fn){
+    const effectfn = ()=>{
+        activeEffect = fn;
+        cleanup(effectfn)
+        fn()
+    }
+
+    effectfn.deps = []// 这边我感觉最好使用definePrototype()  ， 先不讲究这些，待后续完善
+
+    effectfn();
+
+}
+
+
+
+function track(target,p){
+    // if 全是判断相应的值是否存在 ， 没有则 Recording
+    if(!activeEffect) return;
+
+    let depsMap = bocket.get(target);
+    if(!depsMap){
+        bocket.set(target,(new Map()));
+    };
+
+    let deps : Set<unknown>= depsMap.get(p);
+    if(!deps){
+        depsMap.set(p,( deps = new Set()));
+    }
+
+    deps.add(activeEffect);
+
+    activeEffect.deps.push(deps)  //当前副作用函数所关联的其他副作用的添加
+}
+
+
+function trigger(target,p,newValue){
+    target[p] = newValue;
+        const depsMap = bocket.get(target);
+        if(!depsMap) return false
+        const effects = depsMap.get(p);
+
+        const effectsToRun = new Set(effects);// 新创建的set , 不会被依赖收集 毕竟这里没有被代理，响应式更改effects
+        // 所以可以安全遍历
+
+        effectsToRun.forEach((effectfn : any) => effectfn())
+
+        effects && effects.forEach(fn => {
+            fn()
+        });
+}
+
+
 const obj =new Proxy(data,{
     get(target, p, receiver) {
 
-        // if 全是判断相应的值是否存在 ， 没有则 Recording
-        if(!activeEffect) return;
-
-        let depsMap = bocket.get(target);
-
-        if(!depsMap){
-            bocket.set(target,(new Map()));
-        };
-
-        let deps : Set<unknown>= depsMap.get(p);
-
-        if(!deps){
-            depsMap.set(p,( deps = new Set()));
-        }
-
-        deps.add(activeEffect);
+        track(target,p)
 
         return target[p]
 
     },
 
     set(target, p, newValue, receiver) {
-        target[p] = newValue;
+        
 
-        const depsMap = bocket.get(target);
-
-        if(!depsMap) return false
-
-        const effects = depsMap.get(p);
-
-        effects && effects.forEach(fn => {
-            fn()
-        });
-
-
+        trigger(target,p,newValue)
 
         return true
     },
@@ -83,3 +110,13 @@ const obj =new Proxy(data,{
 
 // 为了不多次执行相同的副作用 利用set数据结构去重的功能 ， 配合promise 可实现去只要结果的
 // watch 的实现跟我想的一样 就是利用option.sch
+
+
+function cleanup(effectFn){
+    for (let index = 0; index < effectFn.deps.length; index++) {
+        const deps = effectFn.deps[index];
+        deps.delete[effectFn]
+    }
+
+    effectFn.deps.length = 0
+}
