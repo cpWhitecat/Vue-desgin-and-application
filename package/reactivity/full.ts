@@ -31,11 +31,16 @@ const data = {
 
 let activeEffect;  // cache effect function
 
+const effectStack = [];
+
 function effect(fn){
     const effectfn = ()=>{
         activeEffect = fn;
-        cleanup(effectfn)
-        fn()
+        cleanup(effectfn);
+
+        effectStack.push(effectfn);
+        fn(); // 执行完副作用函数之后，再出堆，如果是嵌套effect , stack 又可以添加一个了副作用函数，逐渐出堆
+        effectStack.pop();
     }
 
     effectfn.deps = []// 这边我感觉最好使用definePrototype()  ， 先不讲究这些，待后续完善
