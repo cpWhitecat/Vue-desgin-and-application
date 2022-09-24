@@ -125,3 +125,13 @@ function cleanup(effectFn){
 
     effectFn.deps.length = 0
 }
+
+// 先如今会产生无限递归循环的问题
+
+// a = a + 1
+// 首先 get a value , 这时候会触发track函数 ， 把当前副作用函数放进桶里
+/**
+ * a 加完1 之后 再把值赋值给a ， 这时候触发trigger函数 ，把副作用函数从weakmap 取出来 ， 并且又执行了一遍
+ * 但又触发了前面写的流程 ， 所以变成了无限递归循环的问题
+ * 要避免的话 ，就是通过 用过判断 trigger函数执行的副作用函数 ， 是否跟当前副作用函数相同 ， 如果相同就return 
+*/
