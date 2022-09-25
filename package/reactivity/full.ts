@@ -31,7 +31,7 @@ const data = {
 
 let activeEffect;  // cache effect function
 
-const effectStack = [];
+const effectStack:Function[] = [];
 
 function effect(fn){
     const effectfn = ()=>{
@@ -77,14 +77,22 @@ function trigger(target,p,newValue){
         if(!depsMap) return false
         const effects = depsMap.get(p);
 
-        const effectsToRun = new Set(effects);// 新创建的set , 不会被依赖收集 毕竟这里没有被代理，响应式更改effects
-        // 所以可以安全遍历
+        // const effectsToRun = new Set(effects);// 新创建的set , 不会被依赖收集 毕竟这里没有被代理，响应式更改effects ，这样应该是不会被现在的响应式追踪的
+        // // 所以可以安全遍历
+
+        const effectsToRun : Set<any>= new Set();  // 副作用隔离 ， 安全遍历
+        effects && effects.forEach(fn => {
+            if (fn !== activeEffect) {
+                effectsToRun.add(fn)
+            }
+        });
+
 
         effectsToRun.forEach((effectfn : any) => effectfn())
 
-        effects && effects.forEach(fn => {
-            fn()
-        });
+        // effects && effects.forEach(fn => {
+        //     fn()   // 因为这里又执行了副作用函数 ， 所以又会被依赖给收集到 ，一直重复一个副作用被删除后添加 ， 但是如果把值重新添加到新的set 里面 就没事了
+        // });
 }
 
 
