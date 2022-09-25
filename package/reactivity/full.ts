@@ -24,6 +24,8 @@
 // })
 
 
+// cannot set tsconfig.json , too many error
+
 const bocket  = new WeakMap();
 const data = {
     text:'hello'
@@ -33,17 +35,18 @@ let activeEffect;  // cache effect function
 
 const effectStack:Function[] = [];
 
-function effect(fn){
+function effect(fn , option : object = {}){
     const effectfn = ()=>{
-        activeEffect = fn;
+        activeEffect = effectfn;
         cleanup(effectfn);
 
         effectStack.push(effectfn);
         fn(); // 执行完副作用函数之后，再出堆，如果是嵌套effect , stack 又可以添加一个了副作用函数，逐渐出堆
         effectStack.pop();
+        activeEffect = effectStack[effectStack.length -1];  // reset value
     }
-
-    effectfn.deps = []// 这边我感觉最好使用definePrototype()  ， 先不讲究这些，待后续完善
+    effectfn.option = option;
+    effectfn.deps = []// 这边我感觉最好使用definePrototype()  ， 更加安全，规矩 ，先不讲究这些，待后续完善
 
     effectfn();
 
@@ -60,7 +63,7 @@ function track(target,p){
         bocket.set(target,(new Map()));
     };
 
-    let deps : Set<unknown>= depsMap.get(p);
+    let deps : Set<unknown>= depsMap.get(p);  // 我知道这个deps , 可能是undefined ， 但是如何提醒编译器 
     if(!deps){
         depsMap.set(p,( deps = new Set()));
     }
@@ -74,7 +77,7 @@ function track(target,p){
 function trigger(target,p,newValue){
     target[p] = newValue;
         const depsMap = bocket.get(target);
-        if(!depsMap) return false
+        if(!depsMap) return ;
         const effects = depsMap.get(p);
 
         // const effectsToRun = new Set(effects);// 新创建的set , 不会被依赖收集 毕竟这里没有被代理，响应式更改effects ，这样应该是不会被现在的响应式追踪的
@@ -88,15 +91,24 @@ function trigger(target,p,newValue){
         });
 
 
-        effectsToRun.forEach((effectfn : any) => effectfn())
+        effectsToRun.forEach((effectfn) =>{
+            if(effectfn.option.scheduler ){    
+                // 这边的scheduler 的key不知道是否有更加自由的选择 ， 而不是硬编码
+                // 实际是硬编码 ， 判断是否存在 
+                effectfn.option.scheduler(effectfn)
+            }else{
+                effectfn()
+            }
+        })
 
         // effects && effects.forEach(fn => {
         //     fn()   // 因为这里又执行了副作用函数 ， 所以又会被依赖给收集到 ，一直重复一个副作用被删除后添加 ， 但是如果把值重新添加到新的set 里面 就没事了
         // });
 }
 
+// const testObj = new Proxy(data,{})
 
-const obj =new Proxy(data,{
+const obj = new Proxy(data,{
     get(target, p, receiver) {
 
         track(target,p)
@@ -107,7 +119,7 @@ const obj =new Proxy(data,{
 
     set(target, p, newValue, receiver) {
         
-
+        target[p] = newValue;
         trigger(target,p,newValue)
 
         return true
@@ -125,10 +137,10 @@ const obj =new Proxy(data,{
 // watch 的实现跟我想的一样 就是利用option.sch
 
 
-function cleanup(effectFn){
+function cleanup(effectFn):any{
     for (let index = 0; index < effectFn.deps.length; index++) {
         const deps = effectFn.deps[index];
-        deps.delete[effectFn]
+        deps.delete(effectFn)
     }
 
     effectFn.deps.length = 0
