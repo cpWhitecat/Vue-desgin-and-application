@@ -27,7 +27,7 @@
 // cannot set tsconfig.json , too many error
 
 const bocket  = new WeakMap();
-const data = {
+const data : object= {
     text:'hello'
 }
 
@@ -35,26 +35,37 @@ let activeEffect;  // cache effect function
 
 const effectStack:Function[] = [];
 
-function effect(fn , option : object = {}){
+type Options = {
+    lazy?:false
+}
+
+function effect(fn , option : Options){
     const effectfn = ()=>{
         activeEffect = effectfn;
         cleanup(effectfn);
 
         effectStack.push(effectfn);
-        fn(); // 执行完副作用函数之后，再出堆，如果是嵌套effect , stack 又可以添加一个了副作用函数，逐渐出堆
+        const res = fn(); // 执行完副作用函数之后，再出堆，如果是嵌套effect , stack 又可以添加一个了副作用函数，逐渐出堆
         effectStack.pop();
         activeEffect = effectStack[effectStack.length -1];  // reset value
+
+        return res
     }
     effectfn.option = option;
     effectfn.deps = []// 这边我感觉最好使用definePrototype()  ， 更加安全，规矩 ，先不讲究这些，待后续完善
 
-    effectfn();
+    if(!option.lazy){
+        effectfn()
+    }
+
+    return effectfn
+    
 
 }
 
 
 
-function track(target,p){
+function track(target : object,p : string){
     // if 全是判断相应的值是否存在 ， 没有则 Recording
     if(!activeEffect) return;
 
@@ -74,7 +85,7 @@ function track(target,p){
 }
 
 
-function trigger(target,p,newValue){
+function trigger(target,p,newValue):void{
     target[p] = newValue;
         const depsMap = bocket.get(target);
         if(!depsMap) return ;
@@ -83,7 +94,7 @@ function trigger(target,p,newValue){
         // const effectsToRun = new Set(effects);// 新创建的set , 不会被依赖收集 毕竟这里没有被代理，响应式更改effects ，这样应该是不会被现在的响应式追踪的
         // // 所以可以安全遍历
 
-        const effectsToRun : Set<any>= new Set();  // 副作用隔离 ， 安全遍历
+        const effectsToRun : Set<unknown>= new Set();  // 副作用隔离 ， 安全遍历
         effects && effects.forEach(fn => {
             if (fn !== activeEffect) {
                 effectsToRun.add(fn)
@@ -108,7 +119,7 @@ function trigger(target,p,newValue){
 
 // const testObj = new Proxy(data,{})
 
-const obj = new Proxy(data,{
+const obj : object = new Proxy(data,{
     get(target, p, receiver) {
 
         track(target,p)
@@ -137,7 +148,30 @@ const obj = new Proxy(data,{
 // watch 的实现跟我想的一样 就是利用option.sch
 
 
-function cleanup(effectFn):any{
+const jobQueue:Set<any> = new Set();
+
+let isFlushing = false;
+
+const ing = Promise.resolve();
+
+function flushingJob(){
+    if(isFlushing){
+        return true
+    }
+
+    isFlushing = true;
+
+    ing.then(()=>{
+        jobQueue.forEach(job=>{
+            job()
+        })
+    }).finally(()=>{
+        isFlushing = false ;
+
+    })
+}
+
+function cleanup(effectFn):void{
     for (let index = 0; index < effectFn.deps.length; index++) {
         const deps = effectFn.deps[index];
         deps.delete(effectFn)
@@ -155,3 +189,6 @@ function cleanup(effectFn):any{
  * 但又触发了前面写的流程 ， 所以变成了无限递归循环的问题
  * 要避免的话 ，就是通过 用过判断 trigger函数执行的副作用函数 ， 是否跟当前副作用函数相同 ， 如果相同就return 
 */
+
+
+// computed就是把函数返回的值lazy , 也就是需要手动执行 ， 

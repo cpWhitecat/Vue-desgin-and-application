@@ -96,6 +96,7 @@ function trigger(target, p) {
     // });
 }
 // const testObj = new Proxy(data,{})
+
 var obj = new Proxy(data, {
     get(target, p, receiver) {
         track(target, p);
