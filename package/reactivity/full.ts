@@ -36,10 +36,11 @@ let activeEffect;  // cache effect function
 const effectStack:Function[] = [];
 
 type Options = {
-    lazy?:false
+    lazy?:boolean,
+    scheduler:(...args:any[])=>any
 }
 
-function effect(fn , option : Options){
+export function effect(fn , option : Options){
     const effectfn = ()=>{
         activeEffect = effectfn;
         cleanup(effectfn);
@@ -65,7 +66,7 @@ function effect(fn , option : Options){
 
 
 
-function track(target : object,p : string){
+function track(target : object,p : string | symbol){
     // if 全是判断相应的值是否存在 ， 没有则 Recording
     if(!activeEffect) return;
 
@@ -85,11 +86,18 @@ function track(target : object,p : string){
 }
 
 
+class ReactiveEffect {
+    public _dirty = false;
+    constructor() {
+        
+    }
+}
+
 function trigger(target,p,newValue):void{
     target[p] = newValue;
-        const depsMap = bocket.get(target);
+        const depsMap : Map<unknown,Set<unknown>> = bocket.get(target);
         if(!depsMap) return ;
-        const effects = depsMap.get(p);
+        const effects= depsMap.get(p) as Set<unknown>;
 
         // const effectsToRun = new Set(effects);// 新创建的set , 不会被依赖收集 毕竟这里没有被代理，响应式更改effects ，这样应该是不会被现在的响应式追踪的
         // // 所以可以安全遍历
@@ -102,7 +110,7 @@ function trigger(target,p,newValue):void{
         });
 
 
-        effectsToRun.forEach((effectfn) =>{
+        effectsToRun.forEach((effectfn:any) =>{  // 这边到底填什么类型 ， 暂且any  , 为了让编译通过
             if(effectfn.option.scheduler ){    
                 // 这边的scheduler 的key不知道是否有更加自由的选择 ， 而不是硬编码
                 // 实际是硬编码 ， 判断是否存在 
