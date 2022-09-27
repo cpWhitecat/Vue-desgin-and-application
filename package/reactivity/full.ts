@@ -66,7 +66,7 @@ export function effect(fn , option : Options){
 
 
 
-function track(target : object,p : string | symbol){
+export function track(target : object,p : string | symbol){
     // if 全是判断相应的值是否存在 ， 没有则 Recording
     if(!activeEffect) return;
 
@@ -93,8 +93,8 @@ class ReactiveEffect {
     }
 }
 
-function trigger(target,p,newValue):void{
-    target[p] = newValue;
+export function trigger(target,p):void{
+    
         const depsMap : Map<unknown,Set<unknown>> = bocket.get(target);
         if(!depsMap) return ;
         const effects= depsMap.get(p) as Set<unknown>;
@@ -139,7 +139,8 @@ const obj : object = new Proxy(data,{
     set(target, p, newValue, receiver) {
         
         target[p] = newValue;
-        trigger(target,p,newValue)
+        
+        trigger(target,p)
 
         return true
     },

@@ -1,4 +1,4 @@
-import { effect } from "./full";
+import { effect, track, trigger } from "./full";
 
 function computed(getter){
     let _value ;
@@ -8,7 +8,11 @@ function computed(getter){
     const effectFn = effect(getter,{
         lazy:true,
         scheduler(){
-            _dirty = true
+            if(!_dirty){
+                _dirty = true
+                trigger(obj,'_value')
+            }
+            
         }
     })
 
@@ -18,8 +22,10 @@ function computed(getter){
                 _value = effectFn();
                  
                 _dirty = false
-                return _value
             }
+
+            track(obj,"_value")
+            return _value
 
 
         }
