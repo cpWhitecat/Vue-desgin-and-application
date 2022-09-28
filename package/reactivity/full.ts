@@ -27,9 +27,7 @@
 // cannot set tsconfig.json , too many error
 
 const bocket  = new WeakMap();
-const data : object= {
-    text:'hello'
-}
+const data : object= { foo: 1, bar: 2 }
 
 let activeEffect;  // cache effect function
 
@@ -72,7 +70,7 @@ export function track(target : object,p : string | symbol){
 
     let depsMap = bocket.get(target);
     if(!depsMap){
-        bocket.set(target,(new Map()));
+        bocket.set(target,(depsMap = new Map()));
     };
 
     let deps : Set<unknown>= depsMap.get(p);  // 我知道这个deps , 可能是undefined ， 但是如何提醒编译器 
@@ -161,7 +159,7 @@ const jobQueue:Set<any> = new Set();
 
 let isFlushing = false;
 
-const ing = Promise.resolve();
+const ing : Promise<void> = Promise.resolve();
 
 function flushingJob(){
     if(isFlushing){
