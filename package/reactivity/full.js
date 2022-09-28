@@ -42,7 +42,7 @@ function effect(fn, option) {
     }
     return effectfn;
 }
-exports.effect = effect;
+
 function track(target, p) {
     // if 全是判断相应的值是否存在 ， 没有则 Recording
     if (!activeEffect)

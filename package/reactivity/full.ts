@@ -33,7 +33,7 @@ let activeEffect;  // cache effect function
 
 const effectStack:Function[] = [];
 
-type Options = {
+export type Options = {
     lazy?:boolean,
     scheduler:(...args:any[])=>any
 }
@@ -57,7 +57,7 @@ export function effect(fn , option : Options){
         effectfn()
     }
 
-    return effectfn
+    return effectfn  //默认懒执行开启
     
 
 }
