@@ -40,8 +40,9 @@ export type Options = {
 
 export function effect(fn , option : Options){
     const effectfn = ()=>{
+        cleanup(effectfn);  // 要先清除副作用 ， 在把副作用赋给activeEffect
         activeEffect = effectfn;
-        cleanup(effectfn);
+        
 
         effectStack.push(effectfn);
         const res = fn(); // 执行完副作用函数之后，再出堆，如果是嵌套effect , stack 又可以添加一个了副作用函数，逐渐出堆
