@@ -1,4 +1,4 @@
-import { effect, track, trigger } from "./full";
+import { effect, track, trigger } from "./effect";
 
 function computed(getter){
     let _value ;

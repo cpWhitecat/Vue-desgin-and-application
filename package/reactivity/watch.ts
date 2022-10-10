@@ -1,4 +1,4 @@
-import { effect, Options } from "./full";
+import { effect, Options } from "./effect";
 type watchOptions = {immediate?:boolean , flush?:'pre' | 'post' | 'sync'}
 
 function watch(effect , call_back:(...args:any[])=>any , option:watchOptions){
@@ -10,10 +10,17 @@ function watch(effect , call_back:(...args:any[])=>any , option:watchOptions){
     }
 
     let newValue,oldValue;
+    let cleanup;
 
+    function onInvalidate(fn){
+        cleanup = fn
+    }
     const job = ()=>{
         newValue = effectFn();
-        call_back(oldValue , newValue);
+        if(cleanup){
+            cleanup()
+        }
+        call_back(oldValue , newValue , onInvalidate);
         oldValue = newValue
     }
 
@@ -51,3 +58,6 @@ function traverse(source , Cache = new Set()){
 // 一些总结
 // 我们通过promise 来控制执行时机
 // 刚开始对于watch新旧值的理解根本不透彻 ,有点楞， 所以需要我之后再好好理解其中的思想 
+
+
+// 解决竞态问题，主要还是需要交给用户，毕竟vue只是给用户提供更加方便和完善的体验
