@@ -92,14 +92,23 @@ class ReactiveEffect {
     }
 }
 
-export function trigger(target,p):void{
+export function trigger(target,p,type : SetType.ADD | SetType.SET):void{
     
         const depsMap : Map<unknown,Set<unknown>> = bocket.get(target);
         if(!depsMap) return ;
         const effects= depsMap.get(p) as Set<unknown>;
 
+        
         // const effectsToRun = new Set(effects);// 新创建的set , 不会被依赖收集 毕竟这里没有被代理，响应式更改effects ，这样应该是不会被现在的响应式追踪的
         // // 所以可以安全遍历
+        if (type === 'ADD') {
+            const iterateEffects = depsMap.get(ITERATE_KEY)
+            iterateEffects && iterateEffects.forEach(effectFn=>{
+            if(effectFn !== activeEffect){
+                effectsToRun.add(effectFn)
+            }
+        })
+        }
 
         const effectsToRun : Set<unknown>= new Set();  // 副作用隔离 ， 安全遍历
         effects && effects.forEach(fn => {
@@ -107,7 +116,7 @@ export function trigger(target,p):void{
                 effectsToRun.add(fn)
             }
         });
-
+        
 
         effectsToRun.forEach((effectfn:any) =>{  // 这边到底填什么类型 ， 暂且any  , 为了让编译通过
             if(effectfn.option.scheduler ){    
@@ -126,22 +135,49 @@ export function trigger(target,p):void{
 
 // const testObj = new Proxy(data,{})
 
-const obj : object = new Proxy(data,{
+const ITERATE_KEY = Symbol();
+function SetChance(target,p){
+    return Object.prototype.hasOwnProperty.call(target,p) ? 'SET' : 'ADD'
+}
+namespace SetType {
+    export type ADD = 'ADD'
+    export type SET = 'SET'
+}
+const obj : object = new Proxy(data as Function | object,{
     get(target, p, receiver) {
 
         track(target,p)
 
-        return target[p]
+        return Reflect.get(target,p,receiver)
 
     },
 
     set(target, p, newValue, receiver) {
+        const type : SetType.ADD | SetType.SET = SetChance(target,p)
+        const res = Reflect.set(target,p,newValue,receiver)
         
-        target[p] = newValue;
-        
-        trigger(target,p)
+        trigger(target,p,type)
 
-        return true
+        return res
+    },
+
+    // apply(target, thisArg, argArray) {
+    //     target.call()
+    // },
+    deleteProperty(target, p) {
+        track(target,p)
+        return Reflect.deleteProperty(target,p)
+    },
+
+    has(target, p) {
+        track(target,p);
+        return Reflect.has(target,p)
+    },
+
+    ownKeys(target) {
+        track(target,ITERATE_KEY)
+
+        return Reflect.ownKeys(target)
     },
 })
 
