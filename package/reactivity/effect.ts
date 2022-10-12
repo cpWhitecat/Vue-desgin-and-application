@@ -145,13 +145,13 @@ namespace SetType {
     export type SET = 'SET'
 }
 
-function GetterHandler(target,p,receiver){
+export function GetterHandler(target,p,receiver){
     track(target,p)
 
     return Reflect.get(target,p,receiver)
 }
 
-function SetterHander(target,p,newValue,receiver){
+export function SetterHandler(target,p,newValue,receiver){
     const type : SetType.ADD | SetType.SET = SetChance(target,p)
     const res = Reflect.set(target,p,newValue,receiver)
     
@@ -163,7 +163,7 @@ function SetterHander(target,p,newValue,receiver){
     return res
 }
 
-function DeletePropertyHandlder(target,p){
+export function DeletePropertyHandler(target,p){
     const Del_Property = Object.prototype.hasOwnProperty.call(target,p);
     const res = Reflect.deleteProperty(target,p);
     if(Del_Property && res){
@@ -173,12 +173,12 @@ function DeletePropertyHandlder(target,p){
     return res
 }
 
-function hasHandler(target,p){
+export function hasHandler(target,p){
     track(target,p);
      return Reflect.has(target,p)
 }
 
-function ownKeysHandler(target){
+export function ownKeysHandler(target){
     track(target,ITERATE_KEY)
 
     return Reflect.ownKeys(target)
@@ -190,14 +190,14 @@ function ownKeysHandler(target){
     },
 
     set(target, p, newValue, receiver) {
-        return SetterHander(target,p,newValue,receiver)
+        return SetterHandler(target,p,newValue,receiver)
     },
 
     // apply(target, thisArg, argArray) {
     //     target.call()
     // },
     deleteProperty(target, p) {
-        return DeletePropertyHandlder(target,p)
+        return DeletePropertyHandler(target,p)
     },
 
     has(target, p) {
