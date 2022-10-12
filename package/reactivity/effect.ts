@@ -92,7 +92,8 @@ class ReactiveEffect {
     }
 }
 
-export function trigger(target,p,type : SetType.ADD | SetType.SET):void{
+type TriggerType = "ADD"| "SET" | "DELETE"
+export function trigger(target,p,type :TriggerType ):void{
     
         const depsMap : Map<unknown,Set<unknown>> = bocket.get(target);
         if(!depsMap) return ;
@@ -165,8 +166,14 @@ const obj : object = new Proxy(data as Function | object,{
     //     target.call()
     // },
     deleteProperty(target, p) {
-        track(target,p)
-        return Reflect.deleteProperty(target,p)
+        
+        const Del_Property = Object.prototype.hasOwnProperty.call(target,p);
+        const res = Reflect.deleteProperty(target,p);
+        if(Del_Property && res){
+            trigger(target,p,"DELETE")
+        }
+
+        return res
     },
 
     has(target, p) {
