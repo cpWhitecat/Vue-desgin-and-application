@@ -1,8 +1,12 @@
 // import {ProxyInstance} from 'package/reactivity/effect'
 import { GetterHandler , SetterHandler , DeletePropertyHandler , hasHandler , ownKeysHandler } from "./effect"
-export function reactive(obj){
+export function reactive(obj:{raw?:any,foo:any}){
     return new Proxy(obj,{   //maybe need to create a class to 封装 those API
         get(target, p, receiver) {
+            if(p === 'raw'){
+                return receiver
+            }
+
             return GetterHandler(target,p,receiver)
         },
     
@@ -27,3 +31,5 @@ export function reactive(obj){
     })
 }
 
+const Test1 = reactive({foo:1})
+console.log(Test1.raw)
