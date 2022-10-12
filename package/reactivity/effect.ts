@@ -100,16 +100,7 @@ export function trigger(target,p,type :TriggerType ):void{
         const effects= depsMap.get(p) as Set<unknown>;
 
         
-        // const effectsToRun = new Set(effects);// 新创建的set , 不会被依赖收集 毕竟这里没有被代理，响应式更改effects ，这样应该是不会被现在的响应式追踪的
-        // // 所以可以安全遍历
-        if (type === 'ADD') {
-            const iterateEffects = depsMap.get(ITERATE_KEY)
-            iterateEffects && iterateEffects.forEach(effectFn=>{
-            if(effectFn !== activeEffect){
-                effectsToRun.add(effectFn)
-            }
-        })
-        }
+        
 
         const effectsToRun : Set<unknown>= new Set();  // 副作用隔离 ， 安全遍历
         effects && effects.forEach(fn => {
@@ -117,7 +108,16 @@ export function trigger(target,p,type :TriggerType ):void{
                 effectsToRun.add(fn)
             }
         });
-        
+        // const effectsToRun = new Set(effects);// 新创建的set , 不会被依赖收集 毕竟这里没有被代理，响应式更改effects ，这样应该是不会被现在的响应式追踪的
+        // // 所以可以安全遍历
+        if (type === 'ADD' || type === "DELETE") {
+            const iterateEffects = depsMap.get(ITERATE_KEY)
+            iterateEffects && iterateEffects.forEach(effectFn=>{
+            if(effectFn !== activeEffect){
+                effectsToRun.add(effectFn)
+            }
+        })
+        } 
 
         effectsToRun.forEach((effectfn:any) =>{  // 这边到底填什么类型 ， 暂且any  , 为了让编译通过
             if(effectfn.option.scheduler ){    
@@ -144,47 +144,68 @@ namespace SetType {
     export type ADD = 'ADD'
     export type SET = 'SET'
 }
-const obj : object = new Proxy(data as Function | object,{
+
+function GetterHandler(target,p,receiver){
+    track(target,p)
+
+    return Reflect.get(target,p,receiver)
+}
+
+function SetterHander(target,p,newValue,receiver){
+    const type : SetType.ADD | SetType.SET = SetChance(target,p)
+    const res = Reflect.set(target,p,newValue,receiver)
+    
+    const oldValue = target[p];
+    if(oldValue !== newValue && (oldValue === oldValue || newValue === newValue)){//We need to think about NaN issue , so that we should to know oldValue and newValue will been not NaN
+        trigger(target,p,type)
+
+    }
+    return res
+}
+
+function DeletePropertyHandlder(target,p){
+    const Del_Property = Object.prototype.hasOwnProperty.call(target,p);
+    const res = Reflect.deleteProperty(target,p);
+    if(Del_Property && res){
+        trigger(target,p,"DELETE")
+    }
+
+    return res
+}
+
+function hasHandler(target,p){
+    track(target,p);
+     return Reflect.has(target,p)
+}
+
+function ownKeysHandler(target){
+    track(target,ITERATE_KEY)
+
+    return Reflect.ownKeys(target)
+}
+// this is test instance
+ const ProxyInstance : object = new Proxy(data as Function | object,{   //maybe need to create a class to 封装 those API
     get(target, p, receiver) {
-
-        track(target,p)
-
-        return Reflect.get(target,p,receiver)
-
+        return GetterHandler(target,p,receiver)
     },
 
     set(target, p, newValue, receiver) {
-        const type : SetType.ADD | SetType.SET = SetChance(target,p)
-        const res = Reflect.set(target,p,newValue,receiver)
-        
-        trigger(target,p,type)
-
-        return res
+        return SetterHander(target,p,newValue,receiver)
     },
 
     // apply(target, thisArg, argArray) {
     //     target.call()
     // },
     deleteProperty(target, p) {
-        
-        const Del_Property = Object.prototype.hasOwnProperty.call(target,p);
-        const res = Reflect.deleteProperty(target,p);
-        if(Del_Property && res){
-            trigger(target,p,"DELETE")
-        }
-
-        return res
+        return DeletePropertyHandlder(target,p)
     },
 
     has(target, p) {
-        track(target,p);
-        return Reflect.has(target,p)
+        return hasHandler(target,p) 
     },
 
     ownKeys(target) {
-        track(target,ITERATE_KEY)
-
-        return Reflect.ownKeys(target)
+        return ownKeysHandler(target)
     },
 })
 
@@ -243,3 +264,5 @@ function cleanup(effectFn):void{
 
 
 // computed就是把函数返回的值lazy , 也就是需要手动执行 ， 
+
+// may be need to 抽离逻辑，这样构建Proxy的拦截，可以更加抽象
