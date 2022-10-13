@@ -1,7 +1,7 @@
 import { effect, track, trigger } from "./effect";
 
-function computed(getter){
-    let _value ;
+function computed(getter:object){
+    let _value:any ;
     let _dirty = true;
 
 

@@ -4,6 +4,7 @@ export function reactive(obj:{raw?:any,foo:any}){
     return new Proxy(obj,{   //maybe need to create a class to 封装 those API
         get(target, p, receiver) {
             if(p === 'raw'){
+                console.log(p);
                 return receiver
             }
 
@@ -32,4 +33,4 @@ export function reactive(obj:{raw?:any,foo:any}){
 }
 
 const Test1 = reactive({foo:1})
-console.log(Test1.raw)
+// Test1.raw  test was pass
