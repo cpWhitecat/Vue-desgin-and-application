@@ -2,7 +2,7 @@
 import { GetterHandler , SetterHandler , DeletePropertyHandler , hasHandler , ownKeysHandler } from "./effect"
 export function reactive(obj:{raw?:any,foo:any}){
     return new Proxy(obj,{   //maybe need to create a class to 封装 those API
-        get(target, p, receiver) {
+        get(target, p:string, receiver:object) {
             if(p === 'raw'){
                 console.log(p);
                 return receiver

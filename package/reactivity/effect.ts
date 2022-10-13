@@ -6,6 +6,8 @@
 //     fn()
 // }
 
+import { reactive } from "./reactive";
+
 // const fullObj : object = new Proxy(data,{
 //     get(target, p, receiver) {
 //         if(activeEffect){
@@ -145,10 +147,13 @@ namespace SetType {
     export type SET = 'SET'
 }
 
-export function GetterHandler(target,p,receiver){
+export function GetterHandler(target:object,p:string,receiver:object):object{
     track(target,p)
-
-    return Reflect.get(target,p,receiver)
+    const res = Reflect.get(target,p,receiver);
+    if(typeof res === "object" || res !== null){
+        return reactive(res)
+    }
+    return res
 }
 
 export function SetterHandler(target,p,newValue,receiver){
@@ -184,7 +189,7 @@ export function ownKeysHandler(target){
     return Reflect.ownKeys(target)
 }
 // this is test instance
- const ProxyInstance : object = new Proxy(data as Function | object,{   //maybe need to create a class to 封装 those API
+ const ProxyInstance : object = new Proxy(data as Function | object,{   //maybe need to create a class to 封装 those API // how to write general type in new function , I donnot wanna to type in every function args
     get(target, p, receiver) {
         return GetterHandler(target,p,receiver)
     },
