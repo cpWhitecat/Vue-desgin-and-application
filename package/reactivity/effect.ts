@@ -167,19 +167,29 @@ export function GetterHandler(target:object,p:string,receiver:object,isShallow?:
     return res
 }
 
-export function SetterHandler(target,p,newValue,receiver){
+export function SetterHandler(target,p,newValue,receiver,isReadonly:isReadonlyType){
+    if(isReadonly){
+        console.log('cannot set ')
+        return true
+    }
     const type : SetType.ADD | SetType.SET = SetChance(target,p)
     const res = Reflect.set(target,p,newValue,receiver)
     
     const oldValue = target[p];
-    if(oldValue !== newValue && (oldValue === oldValue || newValue === newValue)){//We need to think about NaN issue , so that we should to know oldValue and newValue will been not NaN
-        trigger(target,p,type)
+    if(target === receiver.raw){  // 这里的receiver只想代理过原始值后的到的数，通过raw属性知道原型值是什么，判断是否为target,target就是原始值，确保没改错数值，更加严谨
+        if(oldValue !== newValue && (oldValue === oldValue || newValue === newValue)){//We need to think about NaN issue , so that we should to know oldValue and newValue will been not NaN
+            trigger(target,p,type)
 
+        }
     }
     return res
 }
-
-export function DeletePropertyHandler(target,p){
+// 或许要创建些函数签名，这样感觉才能在effect函数里把isReadonly一步到位 ， 不想在添加 args了
+export function DeletePropertyHandler(target,p,isReadonly:isReadonlyType){
+    if(isReadonly){
+        console.log('this is readonly')
+        return true
+    }
     const Del_Property = Object.prototype.hasOwnProperty.call(target,p);
     const res = Reflect.deleteProperty(target,p);
     if(Del_Property && res){
