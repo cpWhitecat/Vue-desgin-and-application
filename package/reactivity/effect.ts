@@ -147,9 +147,20 @@ namespace SetType {
     export type SET = 'SET'
 }
 
-export function GetterHandler(target:object,p:string,receiver:object):object{
-    track(target,p)
+export type isShallowType<T extends boolean = false> = T
+export type isReadonlyType<T extends boolean = false> = T
+export function GetterHandler(target:object,p:string,receiver:object,isShallow?:isShallowType , isReadonly?:isReadonlyType):any{
+    if(p === 'raw'){
+        console.log(p);
+        return receiver
+    }
+
     const res = Reflect.get(target,p,receiver);
+    if(isShallow){
+        return res  //这里为什么不进行依赖添加？？？ 还是说有点咬文嚼字。。。或者我违背了响应式的思想
+    }
+    track(target,p)
+    
     if(typeof res === "object" || res !== null){
         return reactive(res)
     }
