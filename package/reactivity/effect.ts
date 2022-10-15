@@ -6,7 +6,7 @@
 //     fn()
 // }
 
-import { reactive } from "./reactive";
+import { reactive, readonly } from "./reactive";
 
 // const fullObj : object = new Proxy(data,{
 //     get(target, p, receiver) {
@@ -139,7 +139,7 @@ export function trigger(target,p,type :TriggerType ):void{
 // const testObj = new Proxy(data,{})
 
 const ITERATE_KEY = Symbol();
-function SetChance(target,p){
+function SetChance(target:object,p:string | symbol){
     return Object.prototype.hasOwnProperty.call(target,p) ? 'SET' : 'ADD'
 }
 namespace SetType {
@@ -147,9 +147,9 @@ namespace SetType {
     export type SET = 'SET'
 }
 
-export type isShallowType<T extends boolean = false> = T
-export type isReadonlyType<T extends boolean = false> = T
-export function GetterHandler(target:object,p:string,receiver:object,isShallow?:isShallowType , isReadonly?:isReadonlyType):any{
+export type isShallowType<T extends boolean> = T
+export type isReadonlyType<T extends boolean> = T
+export function GetterHandler<T extends boolean>(target:object,p:string,receiver:object,isShallow?: T , isReadonly?:boolean):any{
     if(p === 'raw'){
         console.log(p);
         return receiver
@@ -157,17 +157,22 @@ export function GetterHandler(target:object,p:string,receiver:object,isShallow?:
 
     const res = Reflect.get(target,p,receiver);
     if(isShallow){
-        return res  //这里为什么不进行依赖添加？？？ 还是说有点咬文嚼字。。。或者我违背了响应式的思想
+        return res  //这里为什么不进行依赖添加？？？ 还是说有点咬文嚼字。。。或者我违背了响应式的思想 
+                    // 完全就是我理解错了，一个不被深响应的object，如果被收集了，这样破坏了WeakMap数据结构,而且这只是get操作，所以
+                    // 来个钻牛角尖的想法， 如果一个obj,被shallowReactive,同时又被深度reactive了，那weakMap的数据结构应该是怎么样的
+                    // 没想错，所以需要考虑数据污染问题，在Setter函数中考虑
     }
-    track(target,p)
+    if(!isReadonly){
+        track(target,p)
+    }
     
     if(typeof res === "object" || res !== null){
-        return reactive(res)
+        return isReadonly ? readonly(res) : reactive(res)
     }
     return res
 }
 
-export function SetterHandler(target,p,newValue,receiver,isReadonly:isReadonlyType){
+export function SetterHandler(target:object,p:string | symbol,newValue:unknown,receiver:unknown,isReadonly?:isReadonlyType<boolean>){
     if(isReadonly){
         console.log('cannot set ')
         return true
@@ -175,7 +180,7 @@ export function SetterHandler(target,p,newValue,receiver,isReadonly:isReadonlyTy
     const type : SetType.ADD | SetType.SET = SetChance(target,p)
     const res = Reflect.set(target,p,newValue,receiver)
     
-    const oldValue = target[p];
+    const oldValue :unknown = target[p];
     if(target === receiver.raw){  // 这里的receiver只想代理过原始值后的到的数，通过raw属性知道原型值是什么，判断是否为target,target就是原始值，确保没改错数值，更加严谨
         if(oldValue !== newValue && (oldValue === oldValue || newValue === newValue)){//We need to think about NaN issue , so that we should to know oldValue and newValue will been not NaN
             trigger(target,p,type)
@@ -185,7 +190,7 @@ export function SetterHandler(target,p,newValue,receiver,isReadonly:isReadonlyTy
     return res
 }
 // 或许要创建些函数签名，这样感觉才能在effect函数里把isReadonly一步到位 ， 不想在添加 args了
-export function DeletePropertyHandler(target,p,isReadonly:isReadonlyType){
+export function DeletePropertyHandler(target:object,p:symbol | string,isReadonly?:isReadonlyType<boolean>){
     if(isReadonly){
         console.log('this is readonly')
         return true
@@ -199,7 +204,7 @@ export function DeletePropertyHandler(target,p,isReadonly:isReadonlyType){
     return res
 }
 
-export function hasHandler(target,p){
+export function hasHandler(target:object,p:string | symbol){
     track(target,p);
      return Reflect.has(target,p)
 }

@@ -6,21 +6,21 @@ interface reactiveType {
     isReadonly?:boolean,
     isShallow?:boolean
 } 
-function createReactive<T extends object>(obj:T , isShallow?: isShallowType,isReadonly?:isReadonlyType){
+function createReactive<T extends object>(obj:T , isShallow?:boolean ,isReadonly?:isReadonlyType<boolean>){
  return new Proxy(obj,{   //maybe need to create a class to 封装 those API
-    get(target, p:string, receiver:object) {
-        return GetterHandler(target,p,receiver)
+    get(target : object, p:string, receiver:object ) {  
+        return GetterHandler(target,p,receiver,isShallow,isReadonly)
     },
 
     set(target, p, newValue, receiver) {
-        return SetterHandler(target,p,newValue,receiver)
+        return SetterHandler(target,p,newValue,receiver,isShallow)  // 类型还是不会写，我还是缺少ts经验
     },
 
     // apply(target, thisArg, argArray) {
     //     target.call()
     // },
     deleteProperty(target, p) {
-        return DeletePropertyHandler(target,p)
+        return DeletePropertyHandler(target,p,isReadonly)
     },
 
     has(target, p) {
@@ -34,11 +34,21 @@ function createReactive<T extends object>(obj:T , isShallow?: isShallowType,isRe
 }
 
 export function reactive<T extends object>(obj:T){
-    return createReactive(obj)
+    return createReactive(obj,false)
 }
 
 export function ShallowReactive<T extends object>(obj: T){
     return createReactive(obj,true)
 }
+
+export function readonly(obj:object){
+    return createReactive(obj,false,true)
+}
+
+export function ShallowReadonly(obj:object){
+    return createReactive(obj,true,true)
+}
+
+
 const Test1 = reactive({foo:1})
 // Test1.raw  test was pass
