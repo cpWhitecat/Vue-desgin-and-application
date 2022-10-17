@@ -31,7 +31,7 @@ import { reactive, readonly } from "./reactive";
 const bocket  = new WeakMap();
 const data : object= { foo: 1, bar: 2 }
 
-let activeEffect;  // cache effect function
+let activeEffect:any;  // cache effect function
 
 const effectStack:Function[] = [];
 
@@ -95,7 +95,7 @@ class ReactiveEffect {
 }
 
 type TriggerType = "ADD"| "SET" | "DELETE"
-export function trigger(target,p,type :TriggerType ):void{
+export function trigger(target:object,p:unknown,type :TriggerType , newValue:unknown | number):void{
     
         const depsMap : Map<unknown,Set<unknown>> = bocket.get(target);
         if(!depsMap) return ;
@@ -112,6 +112,27 @@ export function trigger(target,p,type :TriggerType ):void{
         });
         // const effectsToRun = new Set(effects);// 新创建的set , 不会被依赖收集 毕竟这里没有被代理，响应式更改effects ，这样应该是不会被现在的响应式追踪的
         // // 所以可以安全遍历
+        if(p === 'length' && Array.isArray(target)){
+            depsMap.forEach((effectFns,key)=>{
+                if((key as number) >= (newValue as number)){
+                    effectFns.forEach(effectFn=>{
+                        if(effectFn !== activeEffect){
+                            effectsToRun.add(effectFn)
+                        }
+                    })
+                }
+            })
+        }
+
+
+        if(type === 'ADD' && Array.isArray(target)){
+            const lengthEffects = depsMap.get(p)
+            lengthEffects && lengthEffects.forEach(effectFn=>{
+                if (effectFn !== activeEffect) {
+                    effectsToRun.add(effectFn)
+                }
+            })
+        }
         if (type === 'ADD' || type === "DELETE") {
             const iterateEffects = depsMap.get(ITERATE_KEY)
             iterateEffects && iterateEffects.forEach(effectFn=>{
@@ -159,7 +180,7 @@ export function GetterHandler<T extends boolean>(target:object,p:string,receiver
     if(isShallow){
         return res  //这里为什么不进行依赖添加？？？ 还是说有点咬文嚼字。。。或者我违背了响应式的思想 
                     // 完全就是我理解错了，一个不被深响应的object，如果被收集了，这样破坏了WeakMap数据结构,而且这只是get操作，所以
-                    // 来个钻牛角尖的想法， 如果一个obj,被shallowReactive,同时又被深度reactive了，那weakMap的数据结构应该是怎么样的
+                    // 来个钻牛角尖的想法， 如果一个obj,被shallowReactive,同时又被深度reactive了，那weakMap的数据结构应该是怎么样的  //或者应该在vue中试一下
                     // 没想错，所以需要考虑数据污染问题，在Setter函数中考虑
     }
     if(!isReadonly){
@@ -172,18 +193,19 @@ export function GetterHandler<T extends boolean>(target:object,p:string,receiver
     return res
 }
 
-export function SetterHandler(target:object,p:string | symbol,newValue:unknown,receiver:unknown,isReadonly?:isReadonlyType<boolean>){
+export function SetterHandler(target:object,p:string | symbol,newValue:unknown,receiver:object,isReadonly?:isReadonlyType<boolean>){
     if(isReadonly){
         console.log('cannot set ')
         return true
     }
-    const type : SetType.ADD | SetType.SET = SetChance(target,p)
+    const type : SetType.ADD | SetType.SET = Array.isArray(target) ? Number(p) < target.length ? "SET" : 'ADD' :SetChance(target,p)
     const res = Reflect.set(target,p,newValue,receiver)
     
-    const oldValue :unknown = target[p];
+    const oldValue :any = target[p];
+
     if(target === receiver.raw){  // 这里的receiver只想代理过原始值后的到的数，通过raw属性知道原型值是什么，判断是否为target,target就是原始值，确保没改错数值，更加严谨
         if(oldValue !== newValue && (oldValue === oldValue || newValue === newValue)){//We need to think about NaN issue , so that we should to know oldValue and newValue will been not NaN
-            trigger(target,p,type)
+            trigger(target,p,type,newValue)
 
         }
     }

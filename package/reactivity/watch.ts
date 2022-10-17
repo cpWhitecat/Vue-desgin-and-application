@@ -1,18 +1,18 @@
 import { effect, Options } from "./effect";
 type watchOptions = {immediate?:boolean , flush?:'pre' | 'post' | 'sync'}
 
-function watch(effect , call_back:(...args:any[])=>any , option:watchOptions){
-    let getter ;
+function watch(effect:unknown | Function , call_back:(...args:any[])=>any , option:watchOptions){
+    let getter:()=>any ;
     if (typeof effect === 'function'){
         getter = effect
     }else{
         getter = ()=>traverse(effect)
     }
 
-    let newValue,oldValue;
-    let cleanup;
+    let newValue,oldValue:unknown;
+    let cleanup:unknown;
 
-    function onInvalidate(fn){
+    function onInvalidate(fn:()=>unknown){
         cleanup = fn
     }
     const job = ()=>{
