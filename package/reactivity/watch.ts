@@ -1,16 +1,17 @@
 import { effect, Options } from "./effect";
 type watchOptions = {immediate?:boolean , flush?:'pre' | 'post' | 'sync'}
 
-function watch(effect:unknown | Function , call_back:(...args:any[])=>any , option:watchOptions){
-    let getter:()=>any ;
-    if (typeof effect === 'function'){
-        getter = effect
+type effectFn = ()=>any
+function watch(effectfn:unknown, call_back:(...args:any[])=>any , option:watchOptions){
+    let getter:unknown ;
+    if (typeof effectfn === 'function'){
+        getter = effectfn
     }else{
-        getter = ()=>traverse(effect)
+        getter = ()=>traverse(effectfn)
     }
 
     let newValue,oldValue:unknown;
-    let cleanup:unknown;
+    let cleanup:()=>any;
 
     function onInvalidate(fn:()=>unknown){
         cleanup = fn

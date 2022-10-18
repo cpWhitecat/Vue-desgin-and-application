@@ -7,30 +7,37 @@ interface reactiveType {
     isShallow?:boolean
 } 
 function createReactive<T extends object>(obj:T , isShallow?:boolean ,isReadonly?:isReadonlyType<boolean>){
- return new Proxy(obj,{   //maybe need to create a class to 封装 those API
-    get(target : object, p:string, receiver:object ) {  
-        return GetterHandler(target,p,receiver,isShallow,isReadonly)
-    },
-
-    set(target, p, newValue, receiver) {
-        return SetterHandler(target,p,newValue,receiver,isShallow)  // 类型还是不会写，我还是缺少ts经验
-    },
-
-    // apply(target, thisArg, argArray) {
-    //     target.call()
-    // },
-    deleteProperty(target, p) {
-        return DeletePropertyHandler(target,p,isReadonly)
-    },
-
-    has(target, p) {
-        return hasHandler(target,p) 
-    },
-
-    ownKeys(target) {
-        return ownKeysHandler(target)
-    },
-})
+    const reactiveInstance = new Proxy(obj,{   //maybe need to create a class to 封装 those API
+        get(target : object, p:string, receiver:object ) {  
+            return GetterHandler(target,p,receiver,isShallow,isReadonly)
+        },
+    
+        set(target, p, newValue, receiver) {
+            return SetterHandler(target,p,newValue,receiver,isShallow)  // 类型还是不会写，我还是缺少ts经验
+        },
+    
+        // apply(target, thisArg, argArray) {
+        //     target.call()
+        // },
+        deleteProperty(target, p) {
+            return DeletePropertyHandler(target,p,isReadonly)
+        },
+    
+        has(target, p) {
+            return hasHandler(target,p) 
+        },
+    
+        ownKeys(target) {
+            return ownKeysHandler(target)
+        },
+        defineProperty(target, property, attributes) { // 是否要对defineProperty进行响应式追踪
+            if(property === 'raw'){
+                return true
+            }
+            return true
+        },
+    })
+ return Object.defineProperty(reactiveInstance,"raw",obj)  // 增加了一层包装，add raw property
 }
 
 export function reactive<T extends object>(obj:T){

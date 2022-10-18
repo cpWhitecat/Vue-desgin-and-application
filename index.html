@@ -30,10 +30,12 @@ const fullObj = new Proxy(data,{
             bocket.add(activeEffect);
             activeEffect = undefined;
         }
+        console.log(target,'----',receiver)
         return target[p]
     },
     set(target, p, newValue, receiver) {
         target[p] = newValue;
+        console.log(target,'----',receiver)
         bocket.forEach(fn=>fn())
         return true 
     },

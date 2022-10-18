@@ -10,7 +10,7 @@ function computed(getter:object){
         scheduler(){
             if(!_dirty){
                 _dirty = true
-                trigger(obj,'_value',"SET")
+                trigger(obj,'_value',"SET",obj['_value'])
             }
             
         }

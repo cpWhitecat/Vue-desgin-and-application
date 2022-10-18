@@ -220,7 +220,7 @@ export function DeletePropertyHandler(target:object,p:symbol | string,isReadonly
     const Del_Property = Object.prototype.hasOwnProperty.call(target,p);
     const res = Reflect.deleteProperty(target,p);
     if(Del_Property && res){
-        trigger(target,p,"DELETE")
+        trigger(target,p,"DELETE",null)
     }
 
     return res
@@ -237,30 +237,30 @@ export function ownKeysHandler(target){
     return Reflect.ownKeys(target)
 }
 // this is test instance
- const ProxyInstance : object = new Proxy(data as Function | object,{   //maybe need to create a class to 封装 those API // how to write general type in new function , I donnot wanna to type in every function args
-    get(target, p, receiver) {
-        return GetterHandler(target,p,receiver)
-    },
+//  const ProxyInstance : object = new Proxy(data as Function | object,{   //maybe need to create a class to 封装 those API // how to write general type in new function , I donnot wanna to type in every function args
+//     get(target, p, receiver) {
+//         return GetterHandler(target,p,receiver)
+//     },
 
-    set(target, p, newValue, receiver) {
-        return SetterHandler(target,p,newValue,receiver)
-    },
+//     set(target, p, newValue, receiver) {
+//         return SetterHandler(target,p,newValue,receiver)
+//     },
 
-    // apply(target, thisArg, argArray) {
-    //     target.call()
-    // },
-    deleteProperty(target, p) {
-        return DeletePropertyHandler(target,p)
-    },
+//     // apply(target, thisArg, argArray) {
+//     //     target.call()
+//     // },
+//     deleteProperty(target, p) {
+//         return DeletePropertyHandler(target,p)
+//     },
 
-    has(target, p) {
-        return hasHandler(target,p) 
-    },
+//     has(target, p) {
+//         return hasHandler(target,p) 
+//     },
 
-    ownKeys(target) {
-        return ownKeysHandler(target)
-    },
-})
+//     ownKeys(target) {
+//         return ownKeysHandler(target)
+//     },
+// })
 
 // 为了避免执行多余的副作用
 // https://github.com/cpWhitecat/Vue-core/blob/main/packages/reactivity/src/effect.ts

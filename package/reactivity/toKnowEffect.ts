@@ -16,3 +16,4 @@ const EffectObj = {
 function toKnowEffect(){
     document.body.innerText = EffectObj.text
 }
+
