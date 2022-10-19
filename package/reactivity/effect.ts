@@ -6,7 +6,8 @@
 //     fn()
 // }
 
-import { reactive, readonly } from "./reactive";
+// import { extend } from "@vue/shared";
+import { arrayInstrumentations, reactive, readonly } from "./reactive";
 
 // const fullObj : object = new Proxy(data,{
 //     get(target, p, receiver) {
@@ -173,17 +174,24 @@ export type isReadonlyType<T extends boolean> = T
 export function GetterHandler<T extends boolean>(target:object,p:string,receiver:object,isShallow?: T , isReadonly?:boolean):any{
     if(p === 'raw'){
         console.log(p);
-        return receiver
+        return target  //其实receiver[p] 也是可以的
     }
 
-    const res = Reflect.get(target,p,receiver);
+    if(Array.isArray(target) && arrayInstrumentations.hasOwnProperty(p)){
+        return Reflect.get(arrayInstrumentations,p,receiver)
+    }
+
+
+    const res = Reflect.get(target,p,receiver);  // Reflect 是为了解决this问题
+
     if(isShallow){
         return res  //这里为什么不进行依赖添加？？？ 还是说有点咬文嚼字。。。或者我违背了响应式的思想 
                     // 完全就是我理解错了，一个不被深响应的object，如果被收集了，这样破坏了WeakMap数据结构,而且这只是get操作，所以
                     // 来个钻牛角尖的想法， 如果一个obj,被shallowReactive,同时又被深度reactive了，那weakMap的数据结构应该是怎么样的  //或者应该在vue中试一下
+                    // 上面这个问题被后续的解决了，会有一个map，利用他的自动去重功能，防止被建立多次响应式reactive
                     // 没想错，所以需要考虑数据污染问题，在Setter函数中考虑
     }
-    if(!isReadonly){
+    if(!isReadonly && typeof p !== 'symbol'){
         track(target,p)
     }
     
@@ -193,7 +201,8 @@ export function GetterHandler<T extends boolean>(target:object,p:string,receiver
     return res
 }
 
-export function SetterHandler(target:object,p:string | symbol,newValue:unknown,receiver:object,isReadonly?:isReadonlyType<boolean>){
+// maybe need to add the proxy property class
+export function SetterHandler<T extends {raw:object}>(target:object,p:string | symbol,newValue:unknown,receiver:T,isReadonly?:isReadonlyType<boolean>){
     if(isReadonly){
         console.log('cannot set ')
         return true

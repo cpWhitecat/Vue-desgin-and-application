@@ -1,12 +1,48 @@
 // import {ProxyInstance} from 'package/reactivity/effect'
 import { GetterHandler , SetterHandler , DeletePropertyHandler , hasHandler , ownKeysHandler, isShallowType, isReadonlyType } from "./effect"
-
 interface reactiveType {
     raw?:any,
     isReadonly?:boolean,
     isShallow?:boolean
 } 
+
+
+const reactiveMap:Map<unknown,unknown> = new Map();
+export const arrayInstrumentations:object = {};
+
+
+export function toRaw<T>(observed: T): T {  // 有这个完全就是可以不需要Obeject.defineProperty  先不管这些了
+    const raw = observed && (observed)['raw']
+    return raw ? toRaw(raw) : observed
+  }
+
+
+['includes','indexOf','lastIndexOf'].forEach(method=>{
+    const originMethod = Array.prototype[method];
+    arrayInstrumentations[method]=function(...args){   // 用箭头函数的时候this指向有问题,原来this是在上下文捕获的
+        let res = originMethod.apply(this,args);
+
+        if(res === false){
+            
+            res = originMethod.apply(toRaw(this),args)
+        }
+
+        return res
+    }
+
+    
+})
+
+
+
+
+
 function createReactive<T extends object>(obj:T , isShallow?:boolean ,isReadonly?:isReadonlyType<boolean>){
+    const existionProxy = reactiveMap.get(obj)
+    if(existionProxy){
+        return existionProxy
+    }
+
     const reactiveInstance = new Proxy(obj,{   //maybe need to create a class to 封装 those API
         get(target : object, p:string, receiver:object ) {  
             return GetterHandler(target,p,receiver,isShallow,isReadonly)
@@ -37,6 +73,8 @@ function createReactive<T extends object>(obj:T , isShallow?:boolean ,isReadonly
             return true
         },
     })
+
+
  return Object.defineProperty(reactiveInstance,"raw",obj)  // 增加了一层包装，add raw property
 }
 
@@ -59,3 +97,8 @@ export function ShallowReadonly(obj:object){
 
 const Test1 = reactive({foo:1})
 // Test1.raw  test was pass
+
+
+
+
+// 有些问题不必过于钻牛角尖，那是用户改解决的， 而不是框架开发者
