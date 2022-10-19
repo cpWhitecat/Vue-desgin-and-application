@@ -38,10 +38,10 @@ const effectStack:Function[] = [];
 
 export type Options = {
     lazy?:boolean,
-    scheduler:(...args:any[])=>any
+    scheduler?:(...args:any[])=>any
 }
 
-export function effect(fn , option : Options){
+export function effect(fn , option ?: Options){
     const effectfn = ()=>{
         cleanup(effectfn);  // 要先清除副作用 ， 在把副作用赋给activeEffect
         activeEffect = effectfn;
@@ -57,7 +57,7 @@ export function effect(fn , option : Options){
     effectfn.option = option;
     effectfn.deps = []// 这边我感觉最好使用definePrototype()  ， 更加安全，规矩 ，先不讲究这些，待后续完善
 
-    if(!option.lazy){
+    if(option?.lazy){
         effectfn()
     }
 
@@ -85,15 +85,16 @@ export function track(target : object,p : string | symbol){
     deps.add(activeEffect);
 
     activeEffect.deps.push(deps)  //当前副作用函数所关联的其他副作用的添加
+    console.log('tracking')
 }
 
 
-class ReactiveEffect {
-    public _dirty = false;
-    constructor() {
+// class ReactiveEffect {
+//     public _dirty = false;
+//     constructor() {
         
-    }
-}
+//     }
+// }
 
 type TriggerType = "ADD"| "SET" | "DELETE"
 export function trigger(target:object,p:unknown,type :TriggerType , newValue:unknown | number):void{
@@ -152,6 +153,7 @@ export function trigger(target:object,p:unknown,type :TriggerType , newValue:unk
                 effectfn()
             }
         })
+        console.log('triggering')
 
         // effects && effects.forEach(fn => {
         //     fn()   // 因为这里又执行了副作用函数 ， 所以又会被依赖给收集到 ，一直重复一个副作用被删除后添加 ， 但是如果把值重新添加到新的set 里面 就没事了
@@ -161,7 +163,7 @@ export function trigger(target:object,p:unknown,type :TriggerType , newValue:unk
 // const testObj = new Proxy(data,{})
 
 const ITERATE_KEY = Symbol();
-function SetChance(target:object,p:string | symbol){
+export function SetChance(target:object,p:string | symbol){
     return Object.prototype.hasOwnProperty.call(target,p) ? 'SET' : 'ADD'
 }
 namespace SetType {
@@ -171,12 +173,14 @@ namespace SetType {
 
 export type isShallowType<T extends boolean> = T
 export type isReadonlyType<T extends boolean> = T
-export function GetterHandler<T extends boolean>(target:object,p:string,receiver:object,isShallow?: T , isReadonly?:boolean):any{
+export function GetterHandler<T extends boolean>(target:object,p:string | symbol,receiver:unknown,isShallow?: T , isReadonly?:boolean):any{
     if(p === 'raw'){
         console.log(p);
         return target  //其实receiver[p] 也是可以的
     }
-
+    if(p === 'size'){
+        return Reflect.get(target,p,target)
+    }
     if(Array.isArray(target) && arrayInstrumentations.hasOwnProperty(p)){
         return Reflect.get(arrayInstrumentations,p,receiver)
     }
@@ -202,7 +206,7 @@ export function GetterHandler<T extends boolean>(target:object,p:string,receiver
 }
 
 // maybe need to add the proxy property class
-export function SetterHandler<T extends {raw:object}>(target:object,p:string | symbol,newValue:unknown,receiver:T,isReadonly?:isReadonlyType<boolean>){
+export function SetterHandler<T extends {raw:any}>(target:object,p:string | symbol,newValue:unknown,receiver:T,isReadonly?:isReadonlyType<boolean>){
     if(isReadonly){
         console.log('cannot set ')
         return true
@@ -231,6 +235,7 @@ export function DeletePropertyHandler(target:object,p:symbol | string,isReadonly
     if(Del_Property && res){
         trigger(target,p,"DELETE",null)
     }
+    
 
     return res
 }
