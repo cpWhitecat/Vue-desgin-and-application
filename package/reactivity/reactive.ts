@@ -9,15 +9,34 @@ interface reactiveType {
 
 const reactiveMap:Map<unknown,unknown> = new Map();
 export const arrayInstrumentations:object = {};
+// 需要重写的array方法集合
+const changeLength = ['push','shift','pop','unshift','splice']
+const arrayFind = ['includes','indexOf','lastIndexOf']
 
 
 export function toRaw<T>(observed: T): T {  // 有这个完全就是可以不需要Obeject.defineProperty  先不管这些了
     const raw = observed && (observed)['raw']
     return raw ? toRaw(raw) : observed
   }
+export let shouldTrack:boolean = true;
 
 
-['includes','indexOf','lastIndexOf'].forEach(method=>{
+changeLength.forEach(method=>{
+    const originMethod = Array.prototype[method];
+    arrayInstrumentations[method]=function(...args){   // 用箭头函数的时候this指向有问题,原来this是在上下文捕获的
+        shouldTrack =false
+        let res = originMethod.apply(this,args);
+
+        if(res === false){  // 这边会不会有代码耦合
+            
+            res = originMethod.apply(toRaw(this),args)
+        }
+        shouldTrack = true
+        return res
+    }
+})
+
+arrayFind.forEach(method=>{
     const originMethod = Array.prototype[method];
     arrayInstrumentations[method]=function(...args){   // 用箭头函数的时候this指向有问题,原来this是在上下文捕获的
         let res = originMethod.apply(this,args);

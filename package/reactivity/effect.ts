@@ -7,7 +7,7 @@
 // }
 
 // import { extend } from "@vue/shared";
-import { arrayInstrumentations, reactive, readonly } from "./reactive";
+import { arrayInstrumentations, reactive, readonly, shouldTrack } from "./reactive";
 
 // const fullObj : object = new Proxy(data,{
 //     get(target, p, receiver) {
@@ -70,7 +70,7 @@ export function effect(fn , option : Options){
 
 export function track(target : object,p : string | symbol){
     // if 全是判断相应的值是否存在 ， 没有则 Recording
-    if(!activeEffect) return;
+    if(!activeEffect || shouldTrack) return;
 
     let depsMap = bocket.get(target);
     if(!depsMap){
