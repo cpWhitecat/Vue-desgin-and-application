@@ -1,5 +1,7 @@
 // import {ProxyInstance} from 'package/reactivity/effect'
-import { GetterHandler , SetterHandler , DeletePropertyHandler , hasHandler , ownKeysHandler, isShallowType, isReadonlyType, trigger, SetChance } from "./effect"
+import { GetterHandler , SetterHandler , DeletePropertyHandler , hasHandler , ownKeysHandler, isShallowType, isReadonlyType, SetChance } from "./baseHandler"
+import { trigger , track } from "./effect";
+
 interface reactiveType {
     raw?:any,
     isReadonly?:boolean,
