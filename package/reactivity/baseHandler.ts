@@ -42,10 +42,7 @@ arrayFind.forEach(method=>{
 export function SetChance(target:object,p:string | symbol){
     return Object.prototype.hasOwnProperty.call(target,p) ? 'SET' : 'ADD'
 }
-namespace SetType {
-    export type ADD = 'ADD'
-    export type SET = 'SET'
-}
+
 
 export type isShallowType<T extends boolean> = T
 export type isReadonlyType<T extends boolean> = T
@@ -85,7 +82,7 @@ export function SetterHandler<T extends {raw:any}>(target:object,p:string | symb
         console.log('cannot set ')
         return true
     }
-    const type : SetType.ADD | SetType.SET = Array.isArray(target) ? Number(p) < target.length ? "SET" : 'ADD' :SetChance(target,p)
+    const type : 'ADD' | 'SET' = Array.isArray(target) ? Number(p) < target.length ? "SET" : 'ADD' :SetChance(target,p)
     const res = Reflect.set(target,p,newValue,receiver)
     
     const oldValue :any = target[p];

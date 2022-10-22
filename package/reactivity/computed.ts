@@ -10,7 +10,7 @@ function computed(getter:object){
         scheduler(){
             if(!_dirty){
                 _dirty = true
-                trigger(obj,'_value',"SET",obj['_value'])
+                trigger(obj,'_value',"SET")
             }
             
         }
@@ -34,3 +34,4 @@ function computed(getter:object){
 
     return obj
 }
+// vue中的计算属性，是要配合上

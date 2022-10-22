@@ -109,7 +109,7 @@ export function track(target : object,p : string | symbol){
 // }
 
 type TriggerType = "ADD"| "SET" | "DELETE"
-export function trigger(target:object,p:unknown,type :TriggerType , newValue:unknown | number):void{
+export function trigger(target:object,p?:unknown,type ?:TriggerType , newValue?:unknown | number):void{
     
         const depsMap : Map<unknown,Set<unknown>> = bocket.get(target);
         if(!depsMap) return ;
