@@ -7,7 +7,8 @@
 // }
 
 // import { extend } from "@vue/shared";
-import { arrayInstrumentations, reactive, readonly, shouldTrack } from "./reactive";
+import { arrayInstrumentations } from "./baseHandler";
+import { reactive, readonly, } from "./reactive";
 
 // const fullObj : object = new Proxy(data,{
 //     get(target, p, receiver) {
@@ -33,6 +34,15 @@ const bocket  = new WeakMap();
 const data : object= { foo: 1, bar: 2 }
 
 let activeEffect:any;  // cache effect function
+export let shouldTrack : boolean = true
+
+export function TrackToTrue(){
+    shouldTrack = true
+}
+
+export function TrackToFalse(){
+    shouldTrack = false
+}
 
 const effectStack:Function[] = [];
 
@@ -178,9 +188,7 @@ export function GetterHandler<T extends boolean>(target:object,p:string | symbol
         console.log(p);
         return target  //其实receiver[p] 也是可以的
     }
-    if(p === 'size'){
-        return Reflect.get(target,p,target)
-    }
+    
     if(Array.isArray(target) && arrayInstrumentations.hasOwnProperty(p)){
         return Reflect.get(arrayInstrumentations,p,receiver)
     }
