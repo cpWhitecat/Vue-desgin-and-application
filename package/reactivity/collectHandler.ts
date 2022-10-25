@@ -36,14 +36,19 @@ const mutableInstrumentations = {
     get(this:MapTypes,p:any){  // 那类型又如何处理呢
         const target = toRaw(this);
         const had = target.has(p);
+        track(target,p)
         if(had){
-            track(target,p)
+            // track(target,p) //是否需要确定key是否存在，再进行依赖追踪  ，或许这种行为不是框架改考虑的
             const res = target.get(p)
             return typeof res === 'object' ? reactive(res) : res
         }
     
     
         console.log(`not have key for ${target}`)
+    },
+    set(this:MapTypes,p : unknown){
+        const target = toRaw(this);
+        const had = target.has(p);
     }
 }
 
