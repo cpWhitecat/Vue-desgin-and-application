@@ -57,6 +57,14 @@ const mutableInstrumentations = {
         }else if (oldValue !== value || (oldValue === oldValue && value === value)) {
             trigger(target,p,'SET')
         }
+    },
+    forEach(callback,thisArg){
+        const target = toRaw(this);
+        track(target,ITERATE_KEY);
+        const warp = (val)=> typeof val === 'object' ? reactive(val) : val;
+        target.forEach(
+            (v,k)=>callback.call(thisArg,warp(v),warp(k)),this)
+            
     }
 }
 
