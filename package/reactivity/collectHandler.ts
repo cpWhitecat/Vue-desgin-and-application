@@ -38,7 +38,7 @@ const mutableInstrumentations = {
         const had = target.has(p);
         track(target,p)
         if(had){
-            // track(target,p) //是否需要确定key是否存在，再进行依赖追踪  ，或许这种行为不是框架改考虑的
+            // track(target,p) //是否需要确定key是否存在，再进行依赖追踪 //我这是站在用户的角度，但框架作者不需要考虑，给key了就收集依赖
             const res = target.get(p)
             return typeof res === 'object' ? reactive(res) : res
         }
@@ -46,9 +46,17 @@ const mutableInstrumentations = {
     
         console.log(`not have key for ${target}`)
     },
-    set(this:MapTypes,p : unknown){
+    set<T extends {raw?:any}>(this:MapTypes,p : unknown ,value: T){
         const target = toRaw(this);
         const had = target.has(p);
+        const oldValue = target.get(p);
+        const rawValue = value.raw || value
+        target.set(p,rawValue)
+        if(!had){
+            trigger(target,p,'ADD')
+        }else if (oldValue !== value || (oldValue === oldValue && value === value)) {
+            trigger(target,p,'SET')
+        }
     }
 }
 
