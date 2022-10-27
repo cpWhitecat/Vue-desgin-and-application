@@ -1,4 +1,4 @@
-import { ITERATE_KEY, track, trigger } from "./effect"
+import { ITERATE_KEY, MAP_KEY_ITERATE_KEY, track, trigger } from "./effect"
 import { toRaw ,reactive } from "./reactive"
 
 // 下面是个例子，待会封装到函数中\
@@ -12,6 +12,71 @@ type IterableCollections = Map<any, any> | Set<any>
 type WeakCollections = WeakMap<any, any> | WeakSet<any>
 type MapTypes = Map<any, any> | WeakMap<any, any>
 type SetTypes = Set<any> | WeakSet<any>
+
+function iteratorMethods(this:MapTypes | SetTypes){
+    const target = toRaw(this);
+    const itr = target[Symbol.iterator]();
+
+    const warp = (val)=> typeof val === 'object' && val !== null ? reactive(val) : val;
+    track(target,ITERATE_KEY);
+
+    return {
+        next(){
+            const {value , done} = itr.next();
+            return {
+                value:value ? [warp(value[0]),warp(value[1])] : value,  //迭代器value的行为会返回一个数组？  // 知道为什么了，这是因为用于迭代的有两个值，一个是key,一个是value
+                done
+            }
+        },
+        [Symbol.iterator](){
+            return this
+        }
+    }
+
+    
+}
+
+function valuesIteratorMethods(this:Map<any,any> | Set<any>){
+    const target = toRaw(this);
+    const itr = target.values();
+
+    const warp = (val)=> typeof val === 'object' ? reactive(val) : val;
+    track(target,ITERATE_KEY);
+
+    return {
+        next(){
+            const {value , done} = itr.next();
+            return {
+                value:warp(value),  //迭代器value的行为会返回一个数组？  // 知道为什么了，这是因为用于迭代的有两个值，一个是key,一个是value
+                done
+            }
+        },
+        [Symbol.iterator](){
+            return this
+        }
+    }
+}
+
+function keysIteratorMethods(this:Map<any,any> | Set<any>){
+    const target = toRaw(this);
+    const itr = target.keys();
+
+    const warp = (val)=> typeof val === 'object' ? reactive(val) : val;
+    track(target,MAP_KEY_ITERATE_KEY);
+
+    return {
+        next(){
+            const {value , done} = itr.next();
+            return {
+                value:warp(value),  //迭代器value的行为会返回一个数组？  // 知道为什么了，这是因为用于迭代的有两个值，一个是key,一个是value
+                done
+            }
+        },
+        [Symbol.iterator](){
+            return this
+        }
+    }
+}
 
 const mutableInstrumentations = {
     add(this:SetTypes , p : unknown){
@@ -58,19 +123,26 @@ const mutableInstrumentations = {
             trigger(target,p,'SET')
         }
     },
-    forEach(callback,thisArg){
+    forEach(callback:Function,thisArg?:unknown){//是thisArg 没加问号的缘故
         const target = toRaw(this);
+
         track(target,ITERATE_KEY);
+
         const warp = (val)=> typeof val === 'object' ? reactive(val) : val;
-        target.forEach(
-            (v,k)=>callback.call(thisArg,warp(v),warp(k)),this)
-            
-    }
+
+        target.forEach((value,key)=>{  
+            callback.call(thisArg,warp(value),warp(key),this)   
+        })      
+    },
+    [Symbol.iterator]:iteratorMethods,
+    'entries':iteratorMethods,
+    'keys':keysIteratorMethods,
+    'values':valuesIteratorMethods
 }
 
 
 const collectHandler = {
-    get(target, p, receiver) {
+    get(target:MapTypes | SetTypes, p:string | symbol, receiver:unknown) {
         if(p === 'raw') return target  // or receiver[raw]
         if(p === 'size'){
             track(target,ITERATE_KEY)

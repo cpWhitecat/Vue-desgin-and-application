@@ -21,3 +21,11 @@
 // setTimeout(function () {
 //     obj.text = 'hello Vue';
 // }, 1000);
+const p = new Map();
+const instance = {
+    forEach(callback,thisArg){
+        p.forEach((v,k)=>{
+            callback.call(thisArg,v,k,this)
+        })
+    }
+}

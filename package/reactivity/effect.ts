@@ -32,7 +32,7 @@ import { reactive, readonly, } from "./reactive";
 
 const bocket  = new WeakMap();
 export const ITERATE_KEY = Symbol();
-
+export const MAP_KEY_ITERATE_KEY = Symbol();
 // const data : object= { foo: 1, bar: 2 } this is test instance
 
 let activeEffect:any;  // cache effect function
@@ -147,8 +147,10 @@ export function trigger(target:object,p?:unknown,type ?:TriggerType , newValue?:
                 }
             })
         }
-        if (type === 'ADD' || type === "DELETE") {
-            const iterateEffects = depsMap.get(ITERATE_KEY)
+        if (type === 'ADD' 
+        || type === "DELETE" 
+        || (Object.prototype.toString.call(target) === '[object Map]' && type === 'SET')) {
+            const iterateEffects = depsMap.get(MAP_KEY_ITERATE_KEY)
             iterateEffects && iterateEffects.forEach(effectFn=>{
             if(effectFn !== activeEffect){
                 effectsToRun.add(effectFn)
