@@ -1,4 +1,4 @@
-import { track } from "./effect"
+// import { track } from "./effect"
 import { reactive } from "./reactive"
 
 
@@ -16,7 +16,7 @@ export function ref(val:string | boolean | number | HTMLElement){
     return reactive(wrapper)
 }
 
-function toRef(obj,key){
+export function toRef(obj,key){
     return {
         get value(){
             return obj[key]
@@ -27,7 +27,7 @@ function toRef(obj,key){
     }
 }
 
-function toRefs(obj){
+export function toRefs(obj){
     const result = {};
 
     for (const key in obj) {
@@ -41,7 +41,7 @@ function toRefs(obj){
 }
 
 
-function proxyRefs(ref:Ref){   //这里的ref was tracked
+export function proxyRefs(ref:Ref){   //这里的ref was tracked
     return new Proxy(ref,{
         get(target, p, receiver) {
             const refValue = Reflect.get(target,p,receiver);
