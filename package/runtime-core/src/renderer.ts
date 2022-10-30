@@ -2,11 +2,32 @@ function renderer(domString:string , container:HTMLElement){
     container.innerHTML = domString
 }
 
-function patch(oldValue , newValue , container){
 
-}
 
-function createRenderer(){
+
+function createRenderer(options){
+    const {
+        createElement,
+        insert,
+        setElementText
+    } = options  //need to 抽离同样的逻辑
+
+    function mountElement(vnode , container:HTMLElement){
+        const el :HTMLElement = createElement(vnode.type);
+        if(typeof vnode.children === 'string'){
+           setElementText(el,vnode.children)
+        }
+    
+        insert(el,container)
+    }
+
+    function patch(n1 , n2 , container){
+        if(!n1){
+            mountElement(n2,container)
+        }
+    }
+
+
     function render(vnode,container){
         if(vnode){
             patch(container._vnode,vnode,container)
@@ -16,7 +37,7 @@ function createRenderer(){
             }
         }
 
-        container._vnode ? container._vnode = vnode : Object.defineProperty(container,'_vnode',vnode)
+        container._vnode ? container._vnode = vnode : Object.defineProperty(container,'_vnode',vnode)  // 两次判断我估计有点多余
 
     }
     
