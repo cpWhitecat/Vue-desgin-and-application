@@ -2,6 +2,23 @@ function renderer(domString:string , container:HTMLElement){
     container.innerHTML = domString
 }
 
+type vnodeType<T> = T extends any[] ? T : T; 
+
+
+// this is a test instance
+
+const vnode = {
+    type:'div',
+    props:{
+        id:'foo'
+    },
+    children:[
+        {
+            type:'p',
+            children:'hello'
+        }
+    ]
+}
 
 
 
@@ -9,14 +26,29 @@ function createRenderer(options){
     const {
         createElement,
         insert,
-        setElementText
+        setElementText,
+        setAttribute,
     } = options  //need to 抽离同样的逻辑
 
-    function mountElement(vnode , container:HTMLElement){
+    function mountElement<T extends {type?:unknown,props?:{},children?:any[]}>(vnode: T, container:HTMLElement){
+
         const el :HTMLElement = createElement(vnode.type);
         if(typeof vnode.children === 'string'){
            setElementText(el,vnode.children)
+        }else if(Array.isArray(vnode.children)){
+            vnode.children.forEach(node => {
+                patch(null,node ,el)
+            });
         }
+
+        // handle props
+        if(vnode.props){
+            for(const key in vnode.props){
+
+            }
+        }
+
+
     
         insert(el,container)
     }
